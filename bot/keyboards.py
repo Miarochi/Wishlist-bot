@@ -15,7 +15,6 @@ def owner_menu_keyboard() -> ReplyKeyboardMarkup:
             [KeyboardButton(text=BTN_HELP)],
         ],
         resize_keyboard=True,
-        is_persistent=True,
     )
 
 
