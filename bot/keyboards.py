@@ -1,9 +1,9 @@
 from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup, KeyboardButton, ReplyKeyboardMarkup
 
-BTN_LIST_FRIENDS = "📋 Список друзей"
-BTN_FRIEND_DETAILS = "👤 Подробности о друге"
-BTN_REFRESH_WISHLIST = "🔄 Обновить вишлист"
-BTN_ADD_NOTE = "📝 Добавить заметку"
+BTN_LIST_FRIENDS = "📋 Статус анкет"
+BTN_FRIEND_DETAILS = "👤 Подробности"
+BTN_REFRESH_WISHLIST = "🔄 Попросить"
+BTN_ADD_NOTE = "📝 Заметка"
 BTN_HELP = "❓ Помощь"
 
 
