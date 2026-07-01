@@ -19,11 +19,17 @@ def owner_menu_keyboard() -> ReplyKeyboardMarkup:
     )
 
 
+def _picker_label(friend) -> str:
+    label = friend.name or f"id {friend.telegram_id}"
+    if friend.username:
+        label = f"{label} (@{friend.username})"
+    return label
+
+
 def friend_picker_keyboard(action: str, friends: list) -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(
         inline_keyboard=[
-            [InlineKeyboardButton(text=f.name or f"id {f.telegram_id}", callback_data=f"{action}:{f.id}")]
-            for f in friends
+            [InlineKeyboardButton(text=_picker_label(f), callback_data=f"{action}:{f.id}")] for f in friends
         ]
     )
 
