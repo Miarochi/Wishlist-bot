@@ -146,10 +146,10 @@ async def cmd_friend(message: Message, command: CommandObject) -> None:
         await message.answer(format_friend_details(friend))
 
 
-@router.message(Command("refresh"))
+@router.message(Command("ask"))
 async def cmd_refresh(message: Message, command: CommandObject, bot: Bot) -> None:
     if not command.args:
-        await message.answer("Использование: /refresh Имя")
+        await message.answer("Использование: /ask Имя")
         return
     async with async_session() as session:
         friend = await _find_friend_by_name(session, command.args)
