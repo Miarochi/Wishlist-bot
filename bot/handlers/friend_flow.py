@@ -140,13 +140,20 @@ async def receive_wishlist_item(message: Message, friend: Friend) -> None:
         await message.answer("Пришли ссылку или текст, пожалуйста, или нажми «Готово».", reply_markup=links_done_keyboard())
         return
 
+    # A pasted batch of links (or "не изменился") lands as one message — split it into
+    # separate wishlist entries per line instead of storing it as a single blob.
+    items = [line.strip() for line in text.splitlines() if line.strip()]
+    if len(items) == 1 and items[0].lower() in NO_CHANGE_PHRASES:
+        items = []
+
     async with async_session() as session:
         db_friend = await session.get(Friend, friend.id)
-        if text.lower() not in NO_CHANGE_PHRASES:
-            db_friend.add_wishlist_link(text)
+        for item in items:
+            db_friend.add_wishlist_link(item)
         await session.commit()
 
-    await message.answer("Записал ✅ Пришли ещё или нажми «Готово».", reply_markup=links_done_keyboard())
+    reply = f"Записал ({len(items)}) ✅" if len(items) > 1 else "Записал ✅"
+    await message.answer(f"{reply} Пришли ещё или нажми «Готово».", reply_markup=links_done_keyboard())
 
 
 @router.callback_query(F.data == "links_done")
