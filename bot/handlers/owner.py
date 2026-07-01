@@ -134,7 +134,7 @@ async def btn_friends(message: Message) -> None:
 @router.message(Command("friend"))
 async def cmd_friend(message: Message, command: CommandObject) -> None:
     if not command.args:
-        await message.answer("Использование: /friend Имя")
+        await _prompt_friend_picker(message, "pick_details", "Кого показать?")
         return
 
     async with async_session() as session:
@@ -149,7 +149,7 @@ async def cmd_friend(message: Message, command: CommandObject) -> None:
 @router.message(Command("ask"))
 async def cmd_refresh(message: Message, command: CommandObject, bot: Bot) -> None:
     if not command.args:
-        await message.answer("Использование: /ask Имя")
+        await _prompt_friend_picker(message, "pick_refresh", "Кого попросить обновить вишлист?")
         return
     async with async_session() as session:
         friend = await _find_friend_by_name(session, command.args)
@@ -166,7 +166,10 @@ async def cmd_refresh(message: Message, command: CommandObject, bot: Bot) -> Non
 
 @router.message(Command("notes"))
 async def cmd_notes(message: Message, command: CommandObject) -> None:
-    if not command.args or " " not in command.args:
+    if not command.args:
+        await _prompt_friend_picker(message, "pick_notes", "Кому добавить заметку?")
+        return
+    if " " not in command.args:
         await message.answer("Использование: /notes Имя текст заметки")
         return
     name, _, text = command.args.partition(" ")
