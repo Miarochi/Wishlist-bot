@@ -11,11 +11,11 @@ from bot.handlers import friend_flow, owner
 from bot.scheduler import setup_scheduler
 
 OWNER_COMMANDS = [
-    BotCommand(command="friends", description="Список друзей и статус анкет"),
-    BotCommand(command="friend", description="Подробности по другу — /friend Имя"),
-    BotCommand(command="refresh", description="Попросить друга обновить вишлист — /refresh Имя"),
-    BotCommand(command="notes", description="Добавить заметку о друге — /notes Имя текст"),
-    BotCommand(command="help", description="Список команд"),
+    BotCommand(command="friends", description="📋 Список друзей и статус анкет"),
+    BotCommand(command="friend", description="👤 Подробности по другу — /friend Имя"),
+    BotCommand(command="refresh", description="🔄 Попросить друга обновить вишлист — /refresh Имя"),
+    BotCommand(command="notes", description="📝 Добавить заметку о друге — /notes Имя текст"),
+    BotCommand(command="help", description="❓ Список команд"),
 ]
 
 
