@@ -7,7 +7,7 @@ from sqlalchemy import select
 
 from bot.config import OWNER_ID
 from bot.db import async_session
-from bot.keyboards import links_done_keyboard
+from bot.keyboards import links_done_keyboard, owner_menu_keyboard
 from bot.models import Friend
 from bot.utils import format_friend_details, parse_birthday
 
@@ -40,7 +40,8 @@ async def cmd_start(message: Message) -> None:
     if message.from_user.id == OWNER_ID:
         await message.answer(
             "Это твой бот для сбора вишлистов друзей. Пришли ссылку на бота друзьям — "
-            "они заполнят анкету сами, а я пришлю тебе уведомление."
+            "они заполнят анкету сами, а я пришлю тебе уведомление.",
+            reply_markup=owner_menu_keyboard(),
         )
         return
 
