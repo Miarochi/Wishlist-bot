@@ -3,12 +3,20 @@ import logging
 
 from aiogram import Bot, Dispatcher
 from aiogram.fsm.storage.memory import MemoryStorage
-from aiogram.types import BotCommandScopeChat
+from aiogram.types import BotCommand, BotCommandScopeChat
 
 from bot.config import BOT_TOKEN, OWNER_ID
 from bot.db import init_db
 from bot.handlers import friend_flow, owner
 from bot.scheduler import setup_scheduler
+
+OWNER_COMMANDS = [
+    BotCommand(command="friends", description="📋 Список друзей и статус анкет"),
+    BotCommand(command="friend", description="👤 Подробности по другу — /friend Имя"),
+    BotCommand(command="ask", description="🔄 Попросить друга обновить вишлист — /ask Имя"),
+    BotCommand(command="notes", description="📝 Добавить заметку о друге — /notes Имя текст"),
+    BotCommand(command="help", description="❓ Список команд"),
+]
 
 
 async def main() -> None:
@@ -24,9 +32,9 @@ async def main() -> None:
     setup_scheduler(bot)
 
     await bot.delete_webhook(drop_pending_updates=True)
-    # Slash commands are hidden from the "/" menu in favor of the reply-keyboard buttons
-    # (owner_menu_keyboard) — this clears the ones registered by an earlier version.
-    await bot.delete_my_commands(scope=BotCommandScopeChat(chat_id=OWNER_ID))
+    # Both interfaces are offered: the "/" command menu and the reply-keyboard buttons
+    # (owner_menu_keyboard) sent on /start.
+    await bot.set_my_commands(OWNER_COMMANDS, scope=BotCommandScopeChat(chat_id=OWNER_ID))
     await dp.start_polling(bot)
 
 
