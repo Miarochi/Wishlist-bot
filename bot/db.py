@@ -1,8 +1,11 @@
+from pathlib import Path
+
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 
 from bot.config import DB_PATH
 from bot.models import Base
 
+Path(DB_PATH).parent.mkdir(parents=True, exist_ok=True)
 engine = create_async_engine(f"sqlite+aiosqlite:///{DB_PATH}")
 async_session = async_sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
 
