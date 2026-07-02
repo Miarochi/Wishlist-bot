@@ -13,6 +13,7 @@ from bot.config import OWNER_ID
 from bot.db import async_session
 from bot.keyboards import (
     BTN_ADD_NOTE,
+    BTN_EDIT_BIRTHDAY,
     BTN_FRIEND_DETAILS,
     BTN_HELP,
     BTN_LIST_FRIENDS,
@@ -22,7 +23,7 @@ from bot.keyboards import (
     owner_menu_keyboard,
 )
 from bot.models import Friend
-from bot.utils import esc, format_friend_details, next_birthday
+from bot.utils import esc, format_friend_details, next_birthday, parse_birthday
 
 router = Router()
 router.message.filter(F.from_user.id == OWNER_ID)
@@ -35,6 +36,10 @@ async def _reply(target: Message, text: str) -> None:
 
 class NoteInput(StatesGroup):
     text = State()
+
+
+class BirthdayInput(StatesGroup):
+    date = State()
 
 
 @router.message(NoteInput.text)
@@ -53,6 +58,30 @@ async def receive_note_text(message: Message, state: FSMContext) -> None:
 
     await state.clear()
     await _reply(message, f"📝 Заметка про <b>{esc(data['note_friend_name'])}</b> сохранена ✅")
+
+
+@router.message(BirthdayInput.date)
+async def receive_birthday_edit(message: Message, state: FSMContext) -> None:
+    parsed = parse_birthday(message.text or "")
+    if parsed is None:
+        await message.answer("Не понял дату. Нужен формат ДД.ММ.ГГГГ, например: 12.04.2005. Попробуй ещё раз:")
+        return
+    day, month, year = parsed
+
+    data = await state.get_data()
+    async with async_session() as session:
+        friend = await session.get(Friend, data["birthday_friend_id"])
+        friend.birthday_day = day
+        friend.birthday_month = month
+        friend.birthday_year = year
+        friend.last_reminded_year = None
+        await session.commit()
+
+    await state.clear()
+    await _reply(
+        message,
+        f"🎂 Дата рождения <b>{esc(data['birthday_friend_name'])}</b> обновлена: {day:02d}.{month:02d}.{year} ✅",
+    )
 
 
 async def _find_friend_by_name(session, name: str) -> Friend | None:
@@ -87,7 +116,8 @@ async def _send_help(message: Message, bot: Bot) -> None:
         f"{BTN_LIST_FRIENDS} — список друзей и статус анкеты\n"
         f"{BTN_FRIEND_DETAILS} — вишлист, заметки и статус конкретного друга\n"
         f"{BTN_REFRESH_WISHLIST} — попросить друга обновить вишлист прямо сейчас\n"
-        f"{BTN_ADD_NOTE} — дописать заметку о друге вручную",
+        f"{BTN_ADD_NOTE} — дописать заметку о друге вручную\n"
+        f"{BTN_EDIT_BIRTHDAY} — исправить дату рождения друга",
     )
 
 
@@ -189,6 +219,36 @@ async def cmd_notes(message: Message, command: CommandObject) -> None:
     await _reply(message, "📝 Заметка сохранена ✅")
 
 
+@router.message(Command("birthday"))
+async def cmd_birthday(message: Message, command: CommandObject) -> None:
+    if not command.args:
+        await _prompt_friend_picker(message, "pick_birthday", "Кому изменить дату рождения?")
+        return
+    if " " not in command.args:
+        await _reply(message, "Использование: /birthday Имя ДД.ММ.ГГГГ")
+        return
+    name, _, date_text = command.args.partition(" ")
+    parsed = parse_birthday(date_text.strip())
+    if parsed is None:
+        await _reply(message, "Не понял дату. Формат: /birthday Имя ДД.ММ.ГГГГ")
+        return
+    day, month, year = parsed
+
+    async with async_session() as session:
+        friend = await _find_friend_by_name(session, name)
+        if friend is None:
+            await _reply(message, "Не нашёл такого друга. Проверь /friends")
+            return
+        friend.birthday_day = day
+        friend.birthday_month = month
+        friend.birthday_year = year
+        friend.last_reminded_year = None
+        friend_name = friend.name
+        await session.commit()
+
+    await _reply(message, f"🎂 Дата рождения <b>{esc(friend_name)}</b> обновлена: {day:02d}.{month:02d}.{year} ✅")
+
+
 async def _prompt_friend_picker(message: Message, action: str, prompt: str) -> None:
     async with async_session() as session:
         friends = await _all_friends(session)
@@ -260,6 +320,30 @@ async def cb_pick_notes(callback: CallbackQuery, state: FSMContext) -> None:
     await state.update_data(note_friend_id=friend.id, note_friend_name=friend.name)
     await state.set_state(NoteInput.text)
     await _reply(callback.message, f"📝 Напиши заметку про <b>{esc(friend.name)}</b>:")
+
+
+@router.message(F.text == BTN_EDIT_BIRTHDAY)
+async def btn_edit_birthday(message: Message) -> None:
+    await _prompt_friend_picker(message, "pick_birthday", "Кому изменить дату рождения?")
+
+
+@router.callback_query(F.data.startswith("pick_birthday:"))
+async def cb_pick_birthday(callback: CallbackQuery, state: FSMContext) -> None:
+    friend_id = int(callback.data.split(":", 1)[1])
+    async with async_session() as session:
+        friend = await session.get(Friend, friend_id)
+
+    await callback.answer()
+    await callback.message.edit_reply_markup(reply_markup=None)
+    if friend is None:
+        await _reply(callback.message, "Друг не найден.")
+        return
+
+    await state.update_data(birthday_friend_id=friend.id, birthday_friend_name=friend.name)
+    await state.set_state(BirthdayInput.date)
+    await _reply(
+        callback.message, f"🎂 Новая дата рождения для <b>{esc(friend.name)}</b>? Формат ДД.ММ.ГГГГ, например: 12.04.2005"
+    )
 
 
 @router.callback_query(F.data.startswith("ask_update:"))

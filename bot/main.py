@@ -17,6 +17,7 @@ OWNER_COMMANDS = [
     BotCommand(command="friend", description="👤 Подробности о друге"),
     BotCommand(command="ask", description="🔄 Попросить обновить вишлист"),
     BotCommand(command="notes", description="📝 Добавить заметку"),
+    BotCommand(command="birthday", description="🎂 Изменить дату рождения"),
     BotCommand(command="help", description="❓ Помощь"),
 ]
 
