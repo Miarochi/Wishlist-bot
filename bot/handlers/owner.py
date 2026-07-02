@@ -2,20 +2,20 @@ from __future__ import annotations
 
 import asyncio
 from datetime import date
+from pathlib import Path
 
 from aiogram import Bot, F, Router
 from aiogram.filters import Command, CommandObject
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
-from aiogram.types import CallbackQuery, Message
+from aiogram.types import CallbackQuery, FSInputFile, Message
 from sqlalchemy import select
 
-from bot.config import OWNER_ID
+from bot.config import DB_PATH, OWNER_ID
 from bot.db import async_session
 from bot.keyboards import (
     BTN_ADD_NOTE,
     BTN_FRIEND_DETAILS,
-    BTN_HELP,
     BTN_LIST_FRIENDS,
     BTN_REFRESH_WISHLIST,
     delete_confirm_keyboard,
@@ -200,7 +200,8 @@ async def _send_help(message: Message, bot: Bot) -> None:
         f"{BTN_ADD_NOTE} — дописать заметку о друге вручную (добавляет к старым)\n\n"
         "<b>Только в меню слэш-команд:</b>\n"
         "/edit — редактировать анкету друга целиком (имя, дата рождения, вишлист, заметки — заменяет, а не дописывает)\n"
-        "/delete — удалить друга насовсем (с подтверждением)",
+        "/delete — удалить друга насовсем (с подтверждением)\n"
+        "/backup — прислать файл с базой данных",
     )
 
 
@@ -209,9 +210,13 @@ async def cmd_help(message: Message, bot: Bot) -> None:
     await _send_help(message, bot)
 
 
-@router.message(F.text == BTN_HELP)
-async def btn_help(message: Message, bot: Bot) -> None:
-    await _send_help(message, bot)
+@router.message(Command("backup"))
+async def cmd_backup(message: Message) -> None:
+    if not Path(DB_PATH).exists():
+        await _reply(message, "База данных пока пустая — сохранять нечего.")
+        return
+    filename = f"wishlist_backup_{date.today().isoformat()}.db"
+    await message.answer_document(FSInputFile(DB_PATH, filename=filename), caption="💾 Бэкап базы данных")
 
 
 def _fmt_friend_line(friend: Friend, today: date) -> str:

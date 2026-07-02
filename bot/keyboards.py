@@ -4,7 +4,6 @@ BTN_LIST_FRIENDS = "📋 Статус анкет"
 BTN_FRIEND_DETAILS = "👤 Подробности"
 BTN_REFRESH_WISHLIST = "🔄 Попросить"
 BTN_ADD_NOTE = "📝 Заметка"
-BTN_HELP = "❓ Помощь"
 
 
 def owner_menu_keyboard() -> ReplyKeyboardMarkup:
@@ -12,7 +11,6 @@ def owner_menu_keyboard() -> ReplyKeyboardMarkup:
         keyboard=[
             [KeyboardButton(text=BTN_LIST_FRIENDS), KeyboardButton(text=BTN_FRIEND_DETAILS)],
             [KeyboardButton(text=BTN_REFRESH_WISHLIST), KeyboardButton(text=BTN_ADD_NOTE)],
-            [KeyboardButton(text=BTN_HELP)],
         ],
         resize_keyboard=True,
     )

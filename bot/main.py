@@ -19,6 +19,7 @@ OWNER_COMMANDS = [
     BotCommand(command="notes", description="📝 Добавить заметку"),
     BotCommand(command="edit", description="✏️ Редактировать анкету"),
     BotCommand(command="delete", description="🗑 Удалить друга"),
+    BotCommand(command="backup", description="💾 Бэкап базы данных"),
     BotCommand(command="help", description="❓ Помощь"),
 ]
 
