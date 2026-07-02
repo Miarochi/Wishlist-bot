@@ -64,12 +64,12 @@ def format_friend_details(friend: Friend) -> str:
             bday = f"{friend.birthday_day:02d}.{friend.birthday_month:02d}.{friend.birthday_year}"
         else:
             bday = f"{friend.birthday_day:02d}.{friend.birthday_month:02d}"
-        lines.append(f"🎂 {bday}")
+        lines.append(f"<b>{bday}</b>")
 
     if friend.onboarded:
-        lines.append(f"🎁 <b>Вишлист:</b>\n{format_wishlist(friend.wishlist_links)}")
-        notes = esc(friend.notes) if friend.notes else "<i>(нет)</i>"
-        lines.append(f"📝 <b>Заметки:</b>\n{notes}")
+        lines.append(f"<b>Вишлист:</b>\n{format_wishlist(friend.wishlist_links)}")
+        if friend.notes:
+            lines.append(f"<b>Заметки:</b>\n{esc(friend.notes)}")
     else:
         status = STAGE_LABELS.get(friend.stage, friend.stage)
         lines.append(f"⏳ <i>Анкета не закончена: {esc(status)}</i>")
