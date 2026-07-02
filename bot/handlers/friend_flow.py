@@ -13,7 +13,7 @@ from bot.db import async_session
 from bot.keyboards import links_done_keyboard, owner_menu_keyboard
 from bot.link_preview import fetch_link_title
 from bot.models import Friend
-from bot.utils import format_friend_details, parse_birthday
+from bot.utils import esc, format_friend_details, parse_birthday
 
 router = Router()
 
@@ -41,7 +41,7 @@ class KnownFriendFilter(BaseFilter):
 
 
 async def notify_owner_filled(bot: Bot, friend: Friend) -> None:
-    await bot.send_message(OWNER_ID, f"🎉 Новая анкета готова!\n\n{format_friend_details(friend)}")
+    await bot.send_message(OWNER_ID, f"🎉 <b>Новая анкета готова!</b>\n\n{format_friend_details(friend)}")
 
 
 @router.message(CommandStart())
@@ -88,9 +88,9 @@ async def cmd_start(message: Message) -> None:
         return
 
     if candidate_name:
-        await message.answer(f"Привет, {candidate_name}! 👋 Меня попросили собрать твой вишлист к дню рождения.")
+        await message.answer(f"👋 Привет, <b>{esc(candidate_name)}</b>! Меня попросили собрать твой вишлист к дню рождения.")
     else:
-        await message.answer("Привет! 👋 Меня попросили собрать твой вишлист к дню рождения.")
+        await message.answer("👋 Привет! Меня попросили собрать твой вишлист к дню рождения.")
     await _prompt_for_stage(message, stage)
 
 

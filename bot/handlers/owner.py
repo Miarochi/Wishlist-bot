@@ -22,7 +22,7 @@ from bot.keyboards import (
     owner_menu_keyboard,
 )
 from bot.models import Friend
-from bot.utils import format_friend_details, next_birthday
+from bot.utils import esc, format_friend_details, next_birthday
 
 router = Router()
 router.message.filter(F.from_user.id == OWNER_ID)
@@ -52,7 +52,7 @@ async def receive_note_text(message: Message, state: FSMContext) -> None:
         await session.commit()
 
     await state.clear()
-    await _reply(message, f"Заметка про {data['note_friend_name']} сохранена ✅")
+    await _reply(message, f"📝 Заметка про <b>{esc(data['note_friend_name'])}</b> сохранена ✅")
 
 
 async def _find_friend_by_name(session, name: str) -> Friend | None:
@@ -79,10 +79,11 @@ async def _send_help(message: Message, bot: Bot) -> None:
     me = await bot.get_me()
     await _reply(
         message,
-        "Этот бот собирает вишлисты твоих друзей. Пришли им ссылку на бота "
-        f"(https://t.me/{me.username}) — они заполнят анкету сами, а я пришлю тебе уведомление и "
-        "напомню перед днём рождения.\n\n"
-        "Используй кнопки внизу:\n"
+        "🎁 <b>Wishlist Bot</b>\n"
+        "Собирает вишлисты твоих друзей. Пришли им ссылку на бота "
+        f"(<code>https://t.me/{esc(me.username)}</code>) — они заполнят анкету сами, а я пришлю тебе "
+        "уведомление и напомню перед днём рождения.\n\n"
+        "<b>Кнопки внизу:</b>\n"
         f"{BTN_LIST_FRIENDS} — список друзей и статус анкеты\n"
         f"{BTN_FRIEND_DETAILS} — вишлист, заметки и статус конкретного друга\n"
         f"{BTN_REFRESH_WISHLIST} — попросить друга обновить вишлист прямо сейчас\n"
@@ -101,12 +102,12 @@ async def btn_help(message: Message, bot: Bot) -> None:
 
 
 def _fmt_friend_line(friend: Friend, today: date) -> str:
+    name = esc(friend.name or f"(id {friend.telegram_id})")
     if not friend.onboarded:
-        return f"⏳ {friend.name or f'(id {friend.telegram_id})'} — анкета не закончена"
-    status = "✅"
+        return f"⏳ {name} — анкета не закончена"
     next_bday = next_birthday(friend, today)
     days_left = (next_bday - today).days
-    return f"{status} {friend.name} — через {days_left} дн. ({next_bday.strftime('%d.%m')})"
+    return f"✅ <b>{name}</b> — через {days_left} дн. ({next_bday.strftime('%d.%m')})"
 
 
 async def _send_friends_list(message: Message) -> None:
@@ -115,12 +116,14 @@ async def _send_friends_list(message: Message) -> None:
 
     if not friends:
         me = await message.bot.get_me()
-        await _reply(message, f"Пока никто не заполнил анкету. Пришли друзьям ссылку на бота: https://t.me/{me.username}")
+        await _reply(
+            message, f"Пока никто не заполнил анкету. Пришли друзьям ссылку на бота: <code>https://t.me/{esc(me.username)}</code>"
+        )
         return
 
     today = date.today()
     lines = [_fmt_friend_line(f, today) for f in friends]
-    await _reply(message, "\n".join(lines))
+    await _reply(message, "📋 <b>Твои друзья</b>\n\n" + "\n".join(lines))
 
 
 @router.message(Command("friends"))
@@ -163,7 +166,7 @@ async def cmd_refresh(message: Message, command: CommandObject, bot: Bot) -> Non
         friend_name, telegram_id = friend.name, friend.telegram_id
 
     await send_refresh_request(bot, telegram_id)
-    await _reply(message, f"Спросил у {friend_name} про обновление вишлиста ✅")
+    await _reply(message, f"🔄 Спросил у <b>{esc(friend_name)}</b> про обновление вишлиста ✅")
 
 
 @router.message(Command("notes"))
@@ -183,7 +186,7 @@ async def cmd_notes(message: Message, command: CommandObject) -> None:
         existing = f"{friend.notes}\n" if friend.notes else ""
         friend.notes = existing + text.strip()
         await session.commit()
-    await _reply(message, "Заметка сохранена ✅")
+    await _reply(message, "📝 Заметка сохранена ✅")
 
 
 async def _prompt_friend_picker(message: Message, action: str, prompt: str) -> None:
@@ -234,7 +237,7 @@ async def cb_pick_refresh(callback: CallbackQuery, bot: Bot) -> None:
     await send_refresh_request(bot, telegram_id)
     await callback.answer()
     await callback.message.edit_reply_markup(reply_markup=None)
-    await _reply(callback.message, f"Спросил у {friend_name} про обновление вишлиста ✅")
+    await _reply(callback.message, f"🔄 Спросил у <b>{esc(friend_name)}</b> про обновление вишлиста ✅")
 
 
 @router.message(F.text == BTN_ADD_NOTE)
@@ -256,7 +259,7 @@ async def cb_pick_notes(callback: CallbackQuery, state: FSMContext) -> None:
 
     await state.update_data(note_friend_id=friend.id, note_friend_name=friend.name)
     await state.set_state(NoteInput.text)
-    await _reply(callback.message, f"Напиши заметку про {friend.name}:")
+    await _reply(callback.message, f"📝 Напиши заметку про <b>{esc(friend.name)}</b>:")
 
 
 @router.callback_query(F.data.startswith("ask_update:"))
@@ -273,10 +276,10 @@ async def cb_ask_update(callback: CallbackQuery, bot: Bot) -> None:
 
     await send_refresh_request(bot, telegram_id)
     await callback.answer()
-    await callback.message.edit_text(callback.message.text + f"\n\nСпросил у {friend_name} ✅")
+    await callback.message.edit_text(callback.message.html_text + f"\n\n🔄 Спросил у <b>{esc(friend_name)}</b> ✅")
 
 
 @router.callback_query(F.data.startswith("skip_update:"))
 async def cb_skip_update(callback: CallbackQuery) -> None:
     await callback.answer("Ок")
-    await callback.message.edit_text(callback.message.text + "\n\nОк, не спрашиваю.")
+    await callback.message.edit_text(callback.message.html_text + "\n\n⏭ Ок, не спрашиваю.")

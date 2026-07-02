@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import re
 from datetime import date
+from html import escape as esc
 
 from bot.models import Friend
 
@@ -43,30 +44,34 @@ def next_birthday(friend: Friend, today: date) -> date:
 
 def format_wishlist(links: list[dict]) -> str:
     if not links:
-        return "(пусто)"
+        return "<i>(пусто)</i>"
     items = []
     for item in links:
-        text, title = item.get("text", ""), item.get("title")
-        items.append(f"🎁 {title}\n{text}" if title else text)
+        text, title = esc(item.get("text", "")), item.get("title")
+        items.append(f"▫️ <b>{esc(title)}</b>\n{text}" if title else f"▫️ {text}")
     return "\n\n".join(items)
 
 
 def format_friend_details(friend: Friend) -> str:
-    name = friend.name or f"Без имени (id {friend.telegram_id})"
+    name = esc(friend.name or f"Без имени (id {friend.telegram_id})")
+    header = f"👤 <b>{name}</b>"
     if friend.username:
-        name = f"{name} (@{friend.username})"
-    lines = [name]
+        header += f" (@{esc(friend.username)})"
+    lines = [header]
 
     if friend.birthday_day and friend.birthday_month:
         if friend.birthday_year:
-            lines.append(f"ДР: {friend.birthday_day:02d}.{friend.birthday_month:02d}.{friend.birthday_year}")
+            bday = f"{friend.birthday_day:02d}.{friend.birthday_month:02d}.{friend.birthday_year}"
         else:
-            lines.append(f"ДР: {friend.birthday_day:02d}.{friend.birthday_month:02d}")
+            bday = f"{friend.birthday_day:02d}.{friend.birthday_month:02d}"
+        lines.append(f"🎂 {bday}")
 
     if friend.onboarded:
-        lines.append("Вишлист:\n" + format_wishlist(friend.wishlist_links))
-        lines.append(f"Заметки: {friend.notes or '(нет)'}")
+        lines.append(f"🎁 <b>Вишлист:</b>\n{format_wishlist(friend.wishlist_links)}")
+        notes = esc(friend.notes) if friend.notes else "<i>(нет)</i>"
+        lines.append(f"📝 <b>Заметки:</b>\n{notes}")
     else:
-        lines.append(f"Анкета не закончена: {STAGE_LABELS.get(friend.stage, friend.stage)}")
+        status = STAGE_LABELS.get(friend.stage, friend.stage)
+        lines.append(f"⏳ <i>Анкета не закончена: {esc(status)}</i>")
 
     return "\n\n".join(lines)

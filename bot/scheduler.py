@@ -9,7 +9,7 @@ from bot.config import OWNER_ID, REMINDER_DAYS_BEFORE, REMINDER_HOUR, TIMEZONE
 from bot.db import async_session
 from bot.keyboards import reminder_keyboard
 from bot.models import Friend
-from bot.utils import format_wishlist, next_birthday
+from bot.utils import esc, format_wishlist, next_birthday
 
 
 async def check_birthdays(bot: Bot) -> None:
@@ -30,11 +30,11 @@ async def check_birthdays(bot: Bot) -> None:
 
             links = friend.wishlist_links
             lines = [
-                f"🎂 Через {REMINDER_DAYS_BEFORE} дн. день рождения у {friend.name} ({next_bday.strftime('%d.%m')})",
-                "Вишлист:\n" + (format_wishlist(links) if links else "(ещё не прислал)"),
+                f"🎂 Через {REMINDER_DAYS_BEFORE} дн. день рождения у <b>{esc(friend.name)}</b> ({next_bday.strftime('%d.%m')})",
+                "🎁 <b>Вишлист:</b>\n" + (format_wishlist(links) if links else "<i>(ещё не прислал)</i>"),
             ]
             if friend.notes:
-                lines.append(f"Заметки: {friend.notes}")
+                lines.append(f"📝 <b>Заметки:</b>\n{esc(friend.notes)}")
 
             await bot.send_message(
                 OWNER_ID,
