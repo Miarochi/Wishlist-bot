@@ -13,7 +13,6 @@ from bot.config import OWNER_ID
 from bot.db import async_session
 from bot.keyboards import (
     BTN_ADD_NOTE,
-    BTN_EDIT_BIRTHDAY,
     BTN_FRIEND_DETAILS,
     BTN_HELP,
     BTN_LIST_FRIENDS,
@@ -116,8 +115,8 @@ async def _send_help(message: Message, bot: Bot) -> None:
         f"{BTN_LIST_FRIENDS} — список друзей и статус анкеты\n"
         f"{BTN_FRIEND_DETAILS} — вишлист, заметки и статус конкретного друга\n"
         f"{BTN_REFRESH_WISHLIST} — попросить друга обновить вишлист прямо сейчас\n"
-        f"{BTN_ADD_NOTE} — дописать заметку о друге вручную\n"
-        f"{BTN_EDIT_BIRTHDAY} — исправить дату рождения друга",
+        f"{BTN_ADD_NOTE} — дописать заметку о друге вручную\n\n"
+        "Ещё есть команда /birthday — исправить дату рождения друга (доступна через меню слэш-команд).",
     )
 
 
@@ -320,11 +319,6 @@ async def cb_pick_notes(callback: CallbackQuery, state: FSMContext) -> None:
     await state.update_data(note_friend_id=friend.id, note_friend_name=friend.name)
     await state.set_state(NoteInput.text)
     await _reply(callback.message, f"📝 Напиши заметку про <b>{esc(friend.name)}</b>:")
-
-
-@router.message(F.text == BTN_EDIT_BIRTHDAY)
-async def btn_edit_birthday(message: Message) -> None:
-    await _prompt_friend_picker(message, "pick_birthday", "Кому изменить дату рождения?")
 
 
 @router.callback_query(F.data.startswith("pick_birthday:"))
