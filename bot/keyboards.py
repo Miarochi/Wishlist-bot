@@ -50,3 +50,34 @@ def links_done_keyboard() -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(
         inline_keyboard=[[InlineKeyboardButton(text="✅ Готово", callback_data="links_done")]]
     )
+
+
+def edit_field_keyboard(friend_id: int) -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(
+        inline_keyboard=[
+            [
+                InlineKeyboardButton(text="✏️ Имя", callback_data=f"edit_field:name:{friend_id}"),
+                InlineKeyboardButton(text="🎂 Дата рождения", callback_data=f"edit_field:birthday:{friend_id}"),
+            ],
+            [
+                InlineKeyboardButton(text="🎁 Вишлист", callback_data=f"edit_field:wishlist:{friend_id}"),
+                InlineKeyboardButton(text="📝 Заметки", callback_data=f"edit_field:notes:{friend_id}"),
+            ],
+            [InlineKeyboardButton(text="✅ Готово", callback_data=f"edit_done:{friend_id}")],
+        ]
+    )
+
+
+def edit_cancel_keyboard(friend_id: int) -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(
+        inline_keyboard=[[InlineKeyboardButton(text="❌ Отмена", callback_data=f"edit_cancel:{friend_id}")]]
+    )
+
+
+def delete_confirm_keyboard(friend_id: int) -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(
+        inline_keyboard=[
+            [InlineKeyboardButton(text="🗑 Да, удалить", callback_data=f"confirm_delete:{friend_id}")],
+            [InlineKeyboardButton(text="❌ Отмена", callback_data="cancel_delete")],
+        ]
+    )

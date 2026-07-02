@@ -21,6 +21,11 @@ _HEADERS = {
 }
 _TIMEOUT = aiohttp.ClientTimeout(total=5)
 _MAX_BYTES = 200_000
+_URL_RE = re.compile(r"^https?://", re.IGNORECASE)
+
+
+async def title_for_item(item: str) -> str | None:
+    return await fetch_link_title(item) if _URL_RE.match(item) else None
 
 
 async def fetch_link_title(url: str) -> str | None:

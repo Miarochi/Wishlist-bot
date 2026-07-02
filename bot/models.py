@@ -42,6 +42,9 @@ class Friend(Base):
         links.append({"text": link, "title": title})
         self.wishlist_links_json = json.dumps(links, ensure_ascii=False)
 
+    def set_wishlist(self, items: list[dict]) -> None:
+        self.wishlist_links_json = json.dumps(items, ensure_ascii=False)
+
     @property
     def onboarded(self) -> bool:
         return self.stage == "done"
