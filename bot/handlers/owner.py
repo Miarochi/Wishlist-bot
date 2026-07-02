@@ -14,6 +14,7 @@ from sqlalchemy import select
 from bot.config import DB_PATH, OWNER_ID
 from bot.db import async_session
 from bot.keyboards import (
+    BTN_EDIT,
     BTN_FRIEND_DETAILS,
     BTN_LIST_FRIENDS,
     BTN_REFRESH_WISHLIST,
@@ -178,9 +179,10 @@ async def _send_help(message: Message, bot: Bot) -> None:
         "<b>Кнопки внизу:</b>\n"
         f"{BTN_LIST_FRIENDS} — список друзей и статус анкеты\n"
         f"{BTN_FRIEND_DETAILS} — вишлист, заметки и статус конкретного друга\n"
-        f"{BTN_REFRESH_WISHLIST} — попросить друга обновить вишлист прямо сейчас\n\n"
+        f"{BTN_REFRESH_WISHLIST} — попросить друга обновить вишлист прямо сейчас\n"
+        f"{BTN_EDIT} — редактировать анкету друга целиком (имя, дата рождения, вишлист, заметки — заменяет, "
+        "а не дописывает)\n\n"
         "<b>Только в меню слэш-команд:</b>\n"
-        "/edit — редактировать анкету друга целиком (имя, дата рождения, вишлист, заметки — заменяет, а не дописывает)\n"
         "/delete — удалить друга насовсем (с подтверждением)\n"
         "/backup — прислать файл с базой данных",
     )
@@ -329,6 +331,11 @@ async def cb_pick_details(callback: CallbackQuery) -> None:
 @router.message(F.text == BTN_REFRESH_WISHLIST)
 async def btn_refresh(message: Message) -> None:
     await _prompt_friend_picker(message, "pick_refresh", "Кого попросить обновить вишлист?")
+
+
+@router.message(F.text == BTN_EDIT)
+async def btn_edit(message: Message) -> None:
+    await _prompt_friend_picker(message, "pick_edit", "Кого редактировать?")
 
 
 @router.callback_query(F.data.startswith("pick_refresh:"))

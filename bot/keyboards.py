@@ -3,13 +3,14 @@ from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup, KeyboardBu
 BTN_LIST_FRIENDS = "📋 Статус анкет"
 BTN_FRIEND_DETAILS = "👤 Подробности"
 BTN_REFRESH_WISHLIST = "🔄 Попросить"
+BTN_EDIT = "✏️ Редактировать"
 
 
 def owner_menu_keyboard() -> ReplyKeyboardMarkup:
     return ReplyKeyboardMarkup(
         keyboard=[
             [KeyboardButton(text=BTN_LIST_FRIENDS), KeyboardButton(text=BTN_FRIEND_DETAILS)],
-            [KeyboardButton(text=BTN_REFRESH_WISHLIST)],
+            [KeyboardButton(text=BTN_REFRESH_WISHLIST), KeyboardButton(text=BTN_EDIT)],
         ],
         resize_keyboard=True,
     )
