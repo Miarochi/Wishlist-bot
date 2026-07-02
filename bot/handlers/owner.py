@@ -14,7 +14,6 @@ from sqlalchemy import select
 from bot.config import DB_PATH, OWNER_ID
 from bot.db import async_session
 from bot.keyboards import (
-    BTN_ADD_NOTE,
     BTN_FRIEND_DETAILS,
     BTN_LIST_FRIENDS,
     BTN_REFRESH_WISHLIST,
@@ -38,10 +37,6 @@ async def _reply(target: Message, text: str) -> None:
     await target.answer(text, reply_markup=owner_menu_keyboard())
 
 
-class NoteInput(StatesGroup):
-    text = State()
-
-
 class EditField(StatesGroup):
     name = State()
     birthday = State()
@@ -60,26 +55,13 @@ FIELD_PROMPTS = {
     "name": "✏️ Новое имя (одно слово, без пробелов):",
     "birthday": "🎂 Новая дата рождения. Формат ДД.ММ.ГГГГ, например: 12.04.2005",
     "wishlist": "🎁 Пришли новый вишлист — ссылки или текст, каждый пункт на новой строке. Это заменит текущий список.",
-    "notes": "📝 Новый текст заметок (заменит текущие):",
 }
 
 
-@router.message(NoteInput.text)
-async def receive_note_text(message: Message, state: FSMContext) -> None:
-    text = (message.text or "").strip()
-    if not text:
-        await _reply(message, "Пришли текст заметки:")
-        return
-
-    data = await state.get_data()
-    async with async_session() as session:
-        friend = await session.get(Friend, data["note_friend_id"])
-        existing = f"{friend.notes}\n" if friend.notes else ""
-        friend.notes = existing + text
-        await session.commit()
-
-    await state.clear()
-    await _reply(message, f"📝 Заметка про <b>{esc(data['note_friend_name'])}</b> сохранена ✅")
+def _notes_prompt(friend: Friend) -> str:
+    if friend.notes:
+        return "📝 Новый текст заметок (заменит текущие):"
+    return "📝 Добавь заметку:"
 
 
 async def _update_edit_card(bot: Bot, chat_id: int, message_id: int, friend_id: int) -> None:
@@ -92,7 +74,7 @@ async def _update_edit_card(bot: Bot, chat_id: int, message_id: int, friend_id: 
         format_friend_details(friend),
         chat_id=chat_id,
         message_id=message_id,
-        reply_markup=edit_field_keyboard(friend.id),
+        reply_markup=edit_field_keyboard(friend),
     )
 
 
@@ -196,8 +178,7 @@ async def _send_help(message: Message, bot: Bot) -> None:
         "<b>Кнопки внизу:</b>\n"
         f"{BTN_LIST_FRIENDS} — список друзей и статус анкеты\n"
         f"{BTN_FRIEND_DETAILS} — вишлист, заметки и статус конкретного друга\n"
-        f"{BTN_REFRESH_WISHLIST} — попросить друга обновить вишлист прямо сейчас\n"
-        f"{BTN_ADD_NOTE} — дописать заметку о друге вручную (добавляет к старым)\n\n"
+        f"{BTN_REFRESH_WISHLIST} — попросить друга обновить вишлист прямо сейчас\n\n"
         "<b>Только в меню слэш-команд:</b>\n"
         "/edit — редактировать анкету друга целиком (имя, дата рождения, вишлист, заметки — заменяет, а не дописывает)\n"
         "/delete — удалить друга насовсем (с подтверждением)\n"
@@ -244,8 +225,8 @@ async def _send_friends_list(message: Message) -> None:
     await _reply(message, "📋 <b>Твои друзья</b>\n\n" + "\n".join(lines))
 
 
-@router.message(Command("friends"))
-async def cmd_friends(message: Message) -> None:
+@router.message(Command("status"))
+async def cmd_status(message: Message) -> None:
     await _send_friends_list(message)
 
 
@@ -263,7 +244,7 @@ async def cmd_friend(message: Message, command: CommandObject) -> None:
     async with async_session() as session:
         friend = await _find_friend_by_name(session, command.args)
         if friend is None:
-            await _reply(message, "Не нашёл такого друга. Проверь /friends")
+            await _reply(message, "Не нашёл такого друга. Проверь /status")
             return
 
         await _reply(message, format_friend_details(friend))
@@ -277,7 +258,7 @@ async def cmd_refresh(message: Message, command: CommandObject, bot: Bot) -> Non
     async with async_session() as session:
         friend = await _find_friend_by_name(session, command.args)
         if friend is None:
-            await _reply(message, "Не нашёл такого друга. Проверь /friends")
+            await _reply(message, "Не нашёл такого друга. Проверь /status")
             return
         friend.stage = "awaiting_wishlist"
         await session.commit()
@@ -285,26 +266,6 @@ async def cmd_refresh(message: Message, command: CommandObject, bot: Bot) -> Non
 
     await send_refresh_request(bot, telegram_id)
     await _reply(message, f"🔄 Спросил у <b>{esc(friend_name)}</b> про обновление вишлиста ✅")
-
-
-@router.message(Command("notes"))
-async def cmd_notes(message: Message, command: CommandObject) -> None:
-    if not command.args:
-        await _prompt_friend_picker(message, "pick_notes", "Кому добавить заметку?")
-        return
-    if " " not in command.args:
-        await _reply(message, "Использование: /notes Имя текст заметки")
-        return
-    name, _, text = command.args.partition(" ")
-    async with async_session() as session:
-        friend = await _find_friend_by_name(session, name)
-        if friend is None:
-            await _reply(message, "Не нашёл такого друга. Проверь /friends")
-            return
-        existing = f"{friend.notes}\n" if friend.notes else ""
-        friend.notes = existing + text.strip()
-        await session.commit()
-    await _reply(message, "📝 Заметка сохранена ✅")
 
 
 @router.message(Command("edit"))
@@ -315,9 +276,9 @@ async def cmd_edit(message: Message, command: CommandObject) -> None:
     async with async_session() as session:
         friend = await _find_friend_by_name(session, command.args)
     if friend is None:
-        await _reply(message, "Не нашёл такого друга. Проверь /friends")
+        await _reply(message, "Не нашёл такого друга. Проверь /status")
         return
-    await message.answer(format_friend_details(friend), reply_markup=edit_field_keyboard(friend.id))
+    await message.answer(format_friend_details(friend), reply_markup=edit_field_keyboard(friend))
 
 
 @router.message(Command("delete"))
@@ -328,7 +289,7 @@ async def cmd_delete(message: Message, command: CommandObject) -> None:
     async with async_session() as session:
         friend = await _find_friend_by_name(session, command.args)
     if friend is None:
-        await _reply(message, "Не нашёл такого друга. Проверь /friends")
+        await _reply(message, "Не нашёл такого друга. Проверь /status")
         return
     await message.answer(
         f"❗ Удалить <b>{esc(friend.name or f'id {friend.telegram_id}')}</b> вместе со всеми данными? "
@@ -388,28 +349,6 @@ async def cb_pick_refresh(callback: CallbackQuery, bot: Bot) -> None:
     await _reply(callback.message, f"🔄 Спросил у <b>{esc(friend_name)}</b> про обновление вишлиста ✅")
 
 
-@router.message(F.text == BTN_ADD_NOTE)
-async def btn_notes(message: Message) -> None:
-    await _prompt_friend_picker(message, "pick_notes", "Кому добавить заметку?")
-
-
-@router.callback_query(F.data.startswith("pick_notes:"))
-async def cb_pick_notes(callback: CallbackQuery, state: FSMContext) -> None:
-    friend_id = int(callback.data.split(":", 1)[1])
-    async with async_session() as session:
-        friend = await session.get(Friend, friend_id)
-
-    await callback.answer()
-    await callback.message.edit_reply_markup(reply_markup=None)
-    if friend is None:
-        await _reply(callback.message, "Друг не найден.")
-        return
-
-    await state.update_data(note_friend_id=friend.id, note_friend_name=friend.name)
-    await state.set_state(NoteInput.text)
-    await _reply(callback.message, f"📝 Напиши заметку про <b>{esc(friend.name)}</b>:")
-
-
 @router.callback_query(F.data.startswith("pick_edit:"))
 async def cb_pick_edit(callback: CallbackQuery) -> None:
     friend_id = int(callback.data.split(":", 1)[1])
@@ -420,13 +359,23 @@ async def cb_pick_edit(callback: CallbackQuery) -> None:
     if friend is None:
         await callback.message.edit_text("Друг не найден.")
         return
-    await callback.message.edit_text(format_friend_details(friend), reply_markup=edit_field_keyboard(friend.id))
+    await callback.message.edit_text(format_friend_details(friend), reply_markup=edit_field_keyboard(friend))
 
 
 @router.callback_query(F.data.startswith("edit_field:"))
 async def cb_edit_field(callback: CallbackQuery, state: FSMContext) -> None:
     _, field, friend_id_s = callback.data.split(":", 2)
     friend_id = int(friend_id_s)
+
+    if field == "notes":
+        async with async_session() as session:
+            friend = await session.get(Friend, friend_id)
+        if friend is None:
+            await callback.answer("Друг не найден", show_alert=True)
+            return
+        prompt = _notes_prompt(friend)
+    else:
+        prompt = FIELD_PROMPTS[field]
 
     await callback.answer()
     await state.update_data(
@@ -435,7 +384,7 @@ async def cb_edit_field(callback: CallbackQuery, state: FSMContext) -> None:
         edit_message_id=callback.message.message_id,
     )
     await state.set_state(FIELD_STATES[field])
-    await callback.message.edit_text(FIELD_PROMPTS[field], reply_markup=edit_cancel_keyboard(friend_id))
+    await callback.message.edit_text(prompt, reply_markup=edit_cancel_keyboard(friend_id))
 
 
 @router.callback_query(F.data.startswith("edit_cancel:"))
@@ -450,7 +399,7 @@ async def cb_edit_cancel(callback: CallbackQuery, state: FSMContext) -> None:
     if friend is None:
         await callback.message.edit_text("Друг не найден.")
         return
-    await callback.message.edit_text(format_friend_details(friend), reply_markup=edit_field_keyboard(friend.id))
+    await callback.message.edit_text(format_friend_details(friend), reply_markup=edit_field_keyboard(friend))
 
 
 @router.callback_query(F.data.startswith("edit_done:"))

@@ -3,14 +3,13 @@ from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup, KeyboardBu
 BTN_LIST_FRIENDS = "📋 Статус анкет"
 BTN_FRIEND_DETAILS = "👤 Подробности"
 BTN_REFRESH_WISHLIST = "🔄 Попросить"
-BTN_ADD_NOTE = "📝 Заметка"
 
 
 def owner_menu_keyboard() -> ReplyKeyboardMarkup:
     return ReplyKeyboardMarkup(
         keyboard=[
             [KeyboardButton(text=BTN_LIST_FRIENDS), KeyboardButton(text=BTN_FRIEND_DETAILS)],
-            [KeyboardButton(text=BTN_REFRESH_WISHLIST), KeyboardButton(text=BTN_ADD_NOTE)],
+            [KeyboardButton(text=BTN_REFRESH_WISHLIST)],
         ],
         resize_keyboard=True,
     )
@@ -50,18 +49,19 @@ def links_done_keyboard() -> InlineKeyboardMarkup:
     )
 
 
-def edit_field_keyboard(friend_id: int) -> InlineKeyboardMarkup:
+def edit_field_keyboard(friend) -> InlineKeyboardMarkup:
+    notes_label = "📝 Заметки" if friend.notes else "📝 Добавить заметку"
     return InlineKeyboardMarkup(
         inline_keyboard=[
             [
-                InlineKeyboardButton(text="✏️ Имя", callback_data=f"edit_field:name:{friend_id}"),
-                InlineKeyboardButton(text="🎂 Дата рождения", callback_data=f"edit_field:birthday:{friend_id}"),
+                InlineKeyboardButton(text="✏️ Имя", callback_data=f"edit_field:name:{friend.id}"),
+                InlineKeyboardButton(text="🎂 Дата рождения", callback_data=f"edit_field:birthday:{friend.id}"),
             ],
             [
-                InlineKeyboardButton(text="🎁 Вишлист", callback_data=f"edit_field:wishlist:{friend_id}"),
-                InlineKeyboardButton(text="📝 Заметки", callback_data=f"edit_field:notes:{friend_id}"),
+                InlineKeyboardButton(text="🎁 Вишлист", callback_data=f"edit_field:wishlist:{friend.id}"),
+                InlineKeyboardButton(text=notes_label, callback_data=f"edit_field:notes:{friend.id}"),
             ],
-            [InlineKeyboardButton(text="✅ Готово", callback_data=f"edit_done:{friend_id}")],
+            [InlineKeyboardButton(text="✅ Готово", callback_data=f"edit_done:{friend.id}")],
         ]
     )
 

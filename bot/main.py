@@ -13,10 +13,9 @@ from bot.handlers import friend_flow, owner
 from bot.scheduler import setup_scheduler
 
 OWNER_COMMANDS = [
-    BotCommand(command="friends", description="📋 Статус анкет"),
+    BotCommand(command="status", description="📋 Статус анкет"),
     BotCommand(command="friend", description="👤 Подробности о друге"),
     BotCommand(command="ask", description="🔄 Попросить обновить вишлист"),
-    BotCommand(command="notes", description="📝 Добавить заметку"),
     BotCommand(command="edit", description="✏️ Редактировать анкету"),
     BotCommand(command="delete", description="🗑 Удалить друга"),
     BotCommand(command="backup", description="💾 Бэкап базы данных"),
