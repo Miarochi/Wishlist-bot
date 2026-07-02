@@ -32,12 +32,14 @@ class Friend(Base):
     last_reminded_year: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
 
     @property
-    def wishlist_links(self) -> list[str]:
-        return json.loads(self.wishlist_links_json or "[]")
+    def wishlist_links(self) -> list[dict]:
+        raw = json.loads(self.wishlist_links_json or "[]")
+        # Older records stored plain strings before titles were added.
+        return [item if isinstance(item, dict) else {"text": item, "title": None} for item in raw]
 
-    def add_wishlist_link(self, link: str) -> None:
+    def add_wishlist_link(self, link: str, title: Optional[str] = None) -> None:
         links = self.wishlist_links
-        links.append(link)
+        links.append({"text": link, "title": title})
         self.wishlist_links_json = json.dumps(links, ensure_ascii=False)
 
     @property

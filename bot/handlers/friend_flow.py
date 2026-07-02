@@ -1,5 +1,8 @@
 from __future__ import annotations
 
+import asyncio
+import re
+
 from aiogram import Bot, F, Router
 from aiogram.filters import BaseFilter, CommandStart
 from aiogram.types import CallbackQuery, Message
@@ -8,12 +11,18 @@ from sqlalchemy import select
 from bot.config import OWNER_ID
 from bot.db import async_session
 from bot.keyboards import links_done_keyboard, owner_menu_keyboard
+from bot.link_preview import fetch_link_title
 from bot.models import Friend
 from bot.utils import format_friend_details, parse_birthday
 
 router = Router()
 
 NO_CHANGE_PHRASES = {"без изменений", "нет изменений", "не изменился", "не поменялся"}
+_URL_RE = re.compile(r"^https?://", re.IGNORECASE)
+
+
+async def _title_for_item(item: str) -> str | None:
+    return await fetch_link_title(item) if _URL_RE.match(item) else None
 
 
 class KnownFriendFilter(BaseFilter):
@@ -146,10 +155,12 @@ async def receive_wishlist_item(message: Message, friend: Friend) -> None:
     if len(items) == 1 and items[0].lower() in NO_CHANGE_PHRASES:
         items = []
 
+    titles = await asyncio.gather(*(_title_for_item(item) for item in items))
+
     async with async_session() as session:
         db_friend = await session.get(Friend, friend.id)
-        for item in items:
-            db_friend.add_wishlist_link(item)
+        for item, title in zip(items, titles):
+            db_friend.add_wishlist_link(item, title)
         await session.commit()
 
     reply = f"Записал ({len(items)}) ✅" if len(items) > 1 else "Записал ✅"

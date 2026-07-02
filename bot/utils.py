@@ -41,6 +41,16 @@ def next_birthday(friend: Friend, today: date) -> date:
     return bday
 
 
+def format_wishlist(links: list[dict]) -> str:
+    if not links:
+        return "(пусто)"
+    items = []
+    for item in links:
+        text, title = item.get("text", ""), item.get("title")
+        items.append(f"🎁 {title}\n{text}" if title else text)
+    return "\n\n".join(items)
+
+
 def format_friend_details(friend: Friend) -> str:
     name = friend.name or f"Без имени (id {friend.telegram_id})"
     if friend.username:
@@ -54,8 +64,7 @@ def format_friend_details(friend: Friend) -> str:
             lines.append(f"ДР: {friend.birthday_day:02d}.{friend.birthday_month:02d}")
 
     if friend.onboarded:
-        links = friend.wishlist_links
-        lines.append("Вишлист:\n" + ("\n".join(links) if links else "(пусто)"))
+        lines.append("Вишлист:\n" + format_wishlist(friend.wishlist_links))
         lines.append(f"Заметки: {friend.notes or '(нет)'}")
     else:
         lines.append(f"Анкета не закончена: {STAGE_LABELS.get(friend.stage, friend.stage)}")

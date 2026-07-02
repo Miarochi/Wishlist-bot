@@ -3,3 +3,4 @@ SQLAlchemy[asyncio]>=2.0,<2.1
 aiosqlite>=0.20,<0.21
 APScheduler>=3.10,<3.11
 python-dotenv>=1.0,<2
+aiohttp>=3.9,<4
