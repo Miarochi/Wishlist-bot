@@ -5,7 +5,7 @@ from datetime import date
 from pathlib import Path
 
 from aiogram import Bot, F, Router
-from aiogram.filters import Command, CommandObject
+from aiogram.filters import Command, CommandObject, StateFilter
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
 from aiogram.types import CallbackQuery, FSInputFile, Message
@@ -63,6 +63,22 @@ def _notes_prompt(friend: Friend) -> str:
     if friend.notes:
         return "📝 Новый текст заметок (заменит текущие):"
     return "📝 Добавь заметку:"
+
+
+_MENU_BUTTON_TEXTS = {BTN_LIST_FRIENDS, BTN_FRIEND_DETAILS, BTN_REFRESH_WISHLIST, BTN_EDIT}
+
+
+def _is_escape_text(message: Message) -> bool:
+    text = message.text or ""
+    return text in _MENU_BUTTON_TEXTS or text.startswith("/")
+
+
+@router.message(StateFilter(EditField), _is_escape_text)
+async def cancel_stray_edit(message: Message, state: FSMContext) -> None:
+    # The owner tapped a menu button or ran a command while mid-edit — without this, the
+    # button/command text would be swallowed as the field's new value instead of acting on it.
+    await state.clear()
+    await _reply(message, "Редактирование отменено. Нажми ещё раз ↑")
 
 
 async def _update_edit_card(bot: Bot, chat_id: int, message_id: int, friend_id: int) -> None:
